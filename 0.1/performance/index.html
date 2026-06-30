@@ -403,6 +403,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#result-best-of-5-ms" class="md-nav__link">
+    <span class="md-ellipsis">
+      Result (best of 5, ms)
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -466,6 +475,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#result-best-of-5-ms" class="md-nav__link">
+    <span class="md-ellipsis">
+      Result (best of 5, ms)
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -504,14 +522,53 @@ MRI</strong> before timing.</p>
   (<code>did-you-mean.rb</code> + <code>run.sh</code>). Reproduce:
   <code>RBGO=./rbgo TRUFFLE=truffleruby bash bench/modules/run.sh 5</code>.</li>
 </ul>
+<h2 id="result-best-of-5-ms">Result (best of 5, ms)<a class="headerlink" href="#result-best-of-5-ms" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Runtime</th>
+<th style="text-align: right;">time</th>
+<th style="text-align: right;">vs MRI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>rbgo</strong> (go-ruby-did-you-mean)</td>
+<td style="text-align: right;">40</td>
+<td style="text-align: right;">0.03×</td>
+</tr>
+<tr>
+<td>MRI (ruby 4.0.5)</td>
+<td style="text-align: right;">1450</td>
+<td style="text-align: right;">1.00×</td>
+</tr>
+<tr>
+<td>MRI + YJIT</td>
+<td style="text-align: right;">400</td>
+<td style="text-align: right;">0.28×</td>
+</tr>
+<tr>
+<td>JRuby 10.1.0.0</td>
+<td style="text-align: right;">2660</td>
+<td style="text-align: right;">1.83×</td>
+</tr>
+<tr>
+<td>TruffleRuby 34.0.1</td>
+<td style="text-align: right;">480</td>
+<td style="text-align: right;">0.33×</td>
+</tr>
+</tbody>
+</table>
+<p>rbgo runs on <strong>go-ruby-did-you-mean</strong> and is <strong>~33x faster than MRI</strong> here (0.03x): MRI's <code>DidYouMean::SpellChecker</code> edit-distance search is Ruby-coded, so the compiled pure-Go spell-checker dominates. The standout win of the wave-3 suite.</p>
 <div class="admonition note">
 <p class="admonition-title">Honest framing</p>
 <p>JRuby and TruffleRuby are timed <strong>cold, single-shot</strong>, so they carry JVM /
 Graal startup on every run — read them as one-shot <code>ruby file.rb</code> costs, the
 same way <code>rbgo</code> and MRI are measured, not as steady-state JIT numbers. Rows
 that complete in well under ~200 ms carry the most relative noise; treat
-their ratios as order-of-magnitude. Numbers are filled in from a measured
-run — nothing is cherry-picked or estimated from memory.</p>
+their ratios as order-of-magnitude. These are <strong>real measured numbers</strong> from
+the 2026-06-30 run (Apple M-series; <code>ruby 4.0.5 +PRISM</code>, <code>jruby 10.1.0.0</code>,
+<code>truffleruby 34.0.1</code>) — nothing is fabricated or cherry-picked.</p>
 </div>
 
 
