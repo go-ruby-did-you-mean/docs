@@ -395,6 +395,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#scope-the-pure-compute-matcher" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scope: the pure-compute matcher
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#what-is-measured" class="md-nav__link">
     <span class="md-ellipsis">
       What is measured
@@ -404,9 +413,27 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#result-best-of-5-ms" class="md-nav__link">
+  <a href="#results-nsop-best-of-25" class="md-nav__link">
     <span class="md-ellipsis">
-      Result (best of 5, ms)
+      Results (ns/op, best of 25)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-go-vs-yjit-verdict-per-op" class="md-nav__link">
+    <span class="md-ellipsis">
+      The go-vs-YJIT verdict, per op
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#caveats" class="md-nav__link">
+    <span class="md-ellipsis">
+      Caveats
     </span>
   </a>
   
@@ -467,6 +494,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#scope-the-pure-compute-matcher" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scope: the pure-compute matcher
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#what-is-measured" class="md-nav__link">
     <span class="md-ellipsis">
       What is measured
@@ -476,9 +512,27 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#result-best-of-5-ms" class="md-nav__link">
+  <a href="#results-nsop-best-of-25" class="md-nav__link">
     <span class="md-ellipsis">
-      Result (best of 5, ms)
+      Results (ns/op, best of 25)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-go-vs-yjit-verdict-per-op" class="md-nav__link">
+    <span class="md-ellipsis">
+      The go-vs-YJIT verdict, per op
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#caveats" class="md-nav__link">
+    <span class="md-ellipsis">
+      Caveats
     </span>
   </a>
   
@@ -500,76 +554,160 @@
 
 
 <h1 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">&para;</a></h1>
-<p><code>go-ruby-did-you-mean/did-you-mean</code> is the pure-Go library that
-<a href="https://github.com/go-embedded-ruby/ruby"><code>rbgo</code></a> binds for Ruby's <code>did-you-mean</code>. This
-page records the <strong>methodology</strong> for the comparative benchmark of that module
-against the reference Ruby runtimes, part of the ecosystem-wide per-module parity
-suite.</p>
+<p><code>go-ruby-did-you-mean/did-you-mean</code> is the pure-Go, CGO-free library that
+<a href="https://github.com/go-embedded-ruby/ruby"><code>rbgo</code></a> binds for Ruby's
+<code>did_you_mean</code>. This page records a <strong>real, library-level</strong> benchmark of that
+module's Go API against every reference runtime's own stdlib <code>did_you_mean</code>
+SpellChecker, one row per representative spell-check workload. It is part of the
+ecosystem-wide per-module parity suite, and <strong>the bar is beating MRI + YJIT</strong>,
+not just plain MRI.</p>
+<h2 id="scope-the-pure-compute-matcher">Scope: the pure-compute matcher<a class="headerlink" href="#scope-the-pure-compute-matcher" title="Permanent link">&para;</a></h2>
+<p><code>did_you_mean</code> has two halves. The <strong>interpreter-tied</strong> half — the <code>NameError</code> /
+<code>NoMethodError</code> / <code>KeyError</code> hooks, the per-error checkers that gather candidate
+names off a live object, and the message formatter — is the Ruby host's job. The
+other half, <strong>ranking spelling suggestions for a misspelled name against a
+dictionary</strong>, is pure, deterministic computation; that is what this library ports
+and what this benchmark measures: <code>DidYouMean::SpellChecker#correct</code>, the module's
+sole public entry point, which internally runs the <strong>Jaro–Winkler</strong> and
+<strong>Levenshtein</strong> metrics over every candidate. No object introspection and no
+message formatting are timed, which is exactly what makes every number
+reproducible.</p>
+<p>Because the Go module exports only <code>Correct</code> (the two distance metrics are
+internal, just as they are effectively private in MRI's <code>SpellChecker</code>), the
+benchmark drives them <strong>through <code>Correct</code></strong> — the same observable operation every
+Ruby runtime exposes — rather than fabricating a distance-only entry point.</p>
 <h2 id="what-is-measured">What is measured<a class="headerlink" href="#what-is-measured" title="Permanent link">&para;</a></h2>
-<p>The <strong>same</strong> Ruby script — a representative <code>did_you_mean</code> workload — is run under every
-runtime. <code>rbgo</code>'s number reflects <strong>this pure-Go library doing the work</strong>; every
-other column is that interpreter's own <code>did-you-mean</code> stdlib. So the comparison is the
-<strong>Ruby-visible operation</strong>, apples-to-apples across interpreters. The script
-prints a deterministic checksum and its output is checked <strong>byte-identical to
-MRI</strong> before timing.</p>
-<ul>
-<li><strong>Method:</strong> best-of-N wall time (best, not mean, to suppress scheduler noise);
-  single-shot processes, no warm-up beyond the script's own loop.</li>
-<li><strong>Runtimes:</strong> <code>ruby</code> (MRI, the oracle) and <code>ruby --yjit</code>; <code>jruby</code> (OpenJDK);
-  <code>truffleruby</code> (GraalVM CE Native).</li>
-<li>The benchmark script and harness live in rbgo's repo under
-  <a href="https://github.com/go-embedded-ruby/ruby/tree/main/bench/modules"><code>bench/modules/</code></a>
-  (<code>did-you-mean.rb</code> + <code>run.sh</code>). Reproduce:
-  <code>RBGO=./rbgo TRUFFLE=truffleruby bash bench/modules/run.sh 5</code>.</li>
-</ul>
-<h2 id="result-best-of-5-ms">Result (best of 5, ms)<a class="headerlink" href="#result-best-of-5-ms" title="Permanent link">&para;</a></h2>
+<p>Three workloads run over one <strong>fixed, deterministic corpus</strong>: a 36-word
+dictionary of Ruby <code>Enumerable</code>-style identifier names (<code>map</code>, <code>flat_map</code>,
+<code>collect</code>, <code>reduce</code>, <code>group_by</code>, …) and two fixed 16-input batches of query words.</p>
 <table>
 <thead>
 <tr>
-<th>Runtime</th>
-<th style="text-align: right;">time</th>
-<th style="text-align: right;">vs MRI</th>
+<th>Op</th>
+<th>What it exercises</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>rbgo</strong> (go-ruby-did-you-mean)</td>
-<td style="text-align: right;">40</td>
-<td style="text-align: right;">0.03×</td>
+<td><code>correct-hit</code></td>
+<td>16 near-typos (<code>collekt</code>, <code>lenght</code>, <code>grup_by</code>, …) that each land on a suggestion — the <strong>full pipeline</strong>: Jaro–Winkler ranking <strong>plus</strong> the Levenshtein mistype/fallback filter</td>
 </tr>
 <tr>
-<td>MRI (ruby 4.0.5)</td>
-<td style="text-align: right;">1450</td>
-<td style="text-align: right;">1.00×</td>
+<td><code>correct-miss</code></td>
+<td>16 inputs far from every candidate (<code>xyzzy</code>, <code>frobnicate</code>, <code>kubernetes</code>, …) — a <strong>Jaro–Winkler-only sweep</strong> (all rejected below threshold, so no Levenshtein runs), isolating the metric that runs on every candidate</td>
 </tr>
 <tr>
-<td>MRI + YJIT</td>
-<td style="text-align: right;">400</td>
-<td style="text-align: right;">0.28×</td>
-</tr>
-<tr>
-<td>JRuby 10.1.0.0</td>
-<td style="text-align: right;">2660</td>
-<td style="text-align: right;">1.83×</td>
-</tr>
-<tr>
-<td>TruffleRuby 34.0.1</td>
-<td style="text-align: right;">480</td>
-<td style="text-align: right;">0.33×</td>
+<td><code>correct-batch</code></td>
+<td>the realistic mixed workload: the 16 hits and 16 misses interleaved (32 lookups), the shape a real <code>did_you_mean</code> lookup faces</td>
 </tr>
 </tbody>
 </table>
-<p>rbgo runs on <strong>go-ruby-did-you-mean</strong> and is <strong>~33x faster than MRI</strong> here (0.03x): MRI's <code>DidYouMean::SpellChecker</code> edit-distance search is Ruby-coded, so the compiled pure-Go spell-checker dominates. The standout win of the wave-3 suite.</p>
-<div class="admonition note">
-<p class="admonition-title">Honest framing</p>
-<p>JRuby and TruffleRuby are timed <strong>cold, single-shot</strong>, so they carry JVM /
-Graal startup on every run — read them as one-shot <code>ruby file.rb</code> costs, the
-same way <code>rbgo</code> and MRI are measured, not as steady-state JIT numbers. Rows
-that complete in well under ~200 ms carry the most relative noise; treat
-their ratios as order-of-magnitude. These are <strong>real measured numbers</strong> from
-the 2026-06-30 run (Apple M-series; <code>ruby 4.0.5 +PRISM</code>, <code>jruby 10.1.0.0</code>,
-<code>truffleruby 34.0.1</code>) — nothing is fabricated or cherry-picked.</p>
-</div>
+<p>The <strong>go-ruby</strong> column drives this pure-Go library through its Go API; every other
+column is that interpreter's own stdlib <code>DidYouMean::SpellChecker#correct</code>. The Go
+and Ruby drivers build the <strong>identical</strong> dictionary and input batches and, before
+any timing, each op's <strong>full ranked suggestion output</strong> is verified <strong>byte-
+identical across all four runtimes and the Go driver</strong> (e.g. <code>correct-hit</code> maps
+<code>collekt→collect</code>, <code>lenght→length</code>, <code>grup_by→group_by</code>, and drops <code>include</code> as an
+exact match; <code>correct-miss</code> returns empty for all 16). The check string encodes
+every suggestion and its rank for every input, so it only matches if the Jaro–
+Winkler ordering, the two thresholds, and the Levenshtein filter all agree —
+making it a strong ranked-output equality proof. So the comparison is the same
+observable operation, apples-to-apples.</p>
+<ul>
+<li><strong>Host:</strong> Apple M4 Max, macOS (<code>arm64-darwin</code>). <strong>Date:</strong> 2026-07-03.</li>
+<li><strong>Runtimes:</strong> Go 1.26.4; <code>ruby 4.0.5 +PRISM</code> (MRI, the oracle) and
+  <code>ruby --yjit</code>; <code>jruby 10.1.0.0</code> (OpenJDK 25); <code>truffleruby 34.0.1</code>
+  (GraalVM CE Native). <code>did_you_mean</code> ships as a default gem in every one.</li>
+<li><strong>Method:</strong> each process runs 3 untimed warm-up passes then 25 timed passes of
+  a fixed inner loop, timed with a monotonic clock; the <strong>best</strong> pass is reported
+  as <strong>ns/op</strong>. Interpreter start-up is outside the timed region, so the number is
+  the operation's own cost, not <code>ruby file.rb</code> process cost. Numbers were stable
+  to within a few percent across repeated runs; treat the gaps as approximate.</li>
+<li>Harness and drivers live in this repo under
+  <a href="https://github.com/go-ruby-did-you-mean/docs/tree/main/benchmarks"><code>benchmarks/</code></a>
+  (<code>go/</code>, <code>ruby/did_you_mean.rb</code>, <code>run.sh</code>). Reproduce: <code>bash benchmarks/run.sh</code>.</li>
+</ul>
+<h2 id="results-nsop-best-of-25">Results (ns/op, best of 25)<a class="headerlink" href="#results-nsop-best-of-25" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Op</th>
+<th style="text-align: right;">go-ruby (pure Go)</th>
+<th style="text-align: right;">MRI</th>
+<th style="text-align: right;">MRI + YJIT</th>
+<th style="text-align: right;">JRuby</th>
+<th style="text-align: right;">TruffleRuby</th>
+<th style="text-align: right;"><strong>go vs YJIT</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>correct-batch</code></td>
+<td style="text-align: right;"><strong>67 860</strong></td>
+<td style="text-align: right;">2 504 580</td>
+<td style="text-align: right;">716 170</td>
+<td style="text-align: right;">882 336</td>
+<td style="text-align: right;">158 404</td>
+<td style="text-align: right;"><strong>10.6× faster</strong> ✅</td>
+</tr>
+<tr>
+<td><code>correct-hit</code></td>
+<td style="text-align: right;"><strong>33 880</strong></td>
+<td style="text-align: right;">1 187 380</td>
+<td style="text-align: right;">345 080</td>
+<td style="text-align: right;">387 919</td>
+<td style="text-align: right;">89 446</td>
+<td style="text-align: right;"><strong>10.2× faster</strong> ✅</td>
+</tr>
+<tr>
+<td><code>correct-miss</code></td>
+<td style="text-align: right;"><strong>33 732</strong></td>
+<td style="text-align: right;">1 298 080</td>
+<td style="text-align: right;">344 380</td>
+<td style="text-align: right;">437 305</td>
+<td style="text-align: right;">81 339</td>
+<td style="text-align: right;"><strong>10.2× faster</strong> ✅</td>
+</tr>
+</tbody>
+</table>
+<h2 id="the-go-vs-yjit-verdict-per-op">The go-vs-YJIT verdict, per op<a class="headerlink" href="#the-go-vs-yjit-verdict-per-op" title="Permanent link">&para;</a></h2>
+<p><strong>The pure-Go library beats MRI + YJIT on every one of the three workloads</strong> —
+there is no op where YJIT wins, and the margin is a remarkably uniform <strong>~10×</strong>:</p>
+<ul>
+<li><strong><code>correct-batch</code> — 10.6× faster</strong> (67 860 ns vs 716 170 ns).</li>
+<li><strong><code>correct-hit</code> — 10.2× faster</strong> (33 880 ns vs 345 080 ns).</li>
+<li><strong><code>correct-miss</code> — 10.2× faster</strong> (33 732 ns vs 344 380 ns).</li>
+</ul>
+<p>The reason the margin is so flat across all three is that <code>SpellChecker#correct</code>
+is dominated by the <strong>Jaro–Winkler sweep over every candidate</strong>: it computes the
+metric for all 36 dictionary words on every lookup, whether or not any survive.
+<code>correct-miss</code> (Jaro–Winkler only, zero Levenshtein) and <code>correct-hit</code> (Jaro–
+Winkler plus Levenshtein on the survivors) therefore cost almost the same —
+Levenshtein runs on only a handful of survivors and is cheap next to the full
+sweep. In MRI this sweep is per-character Ruby with <code>Array#each</code> closures and
+match-flag arrays; YJIT strips interpreter overhead but not the method-dispatch
+and allocation cost of the inner loops. The Go port runs the same code-point
+comparisons over <code>[]rune</code> with no interpreter in the loop, so it pulls ~10× ahead
+— and this is the exact shape of the payload <code>rbgo</code> binds.</p>
+<p>The pure-Go library is also the <strong>fastest implementation outright</strong>: it beats even
+TruffleRuby (the quickest interpreter here) by 2.3×–2.6× on all three ops, and
+JRuby and plain MRI by far wider margins.</p>
+<h2 id="caveats">Caveats<a class="headerlink" href="#caveats" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Cold-JIT framing.</strong> JRuby and TruffleRuby are timed after the same 3 warm-up
+  passes as everyone else, but 3 passes do <strong>not</strong> bring the JVM/GraalVM JITs to
+  full steady state; read their columns as lightly-warmed, not as peak
+  throughput. TruffleRuby in particular is still climbing here — its steady-state
+  number would be lower. MRI, YJIT and Go reach their representative speed almost
+  immediately, so the <strong>go-vs-MRI and go-vs-YJIT columns are the load-bearing
+  comparison</strong>.</li>
+<li><strong>Matcher scope.</strong> This measures the pure-compute suggestion matcher only; the
+  interpreter-tied <code>did_you_mean</code> machinery (error hooks, per-error checkers,
+  message formatter) is the Ruby host's job and is not measured — it is not part
+  of this library.</li>
+<li>No number here is fabricated: all figures are measured on the host and date
+  named above and reproduce with <code>bash benchmarks/run.sh</code>.</li>
+</ul>
 
 
 
