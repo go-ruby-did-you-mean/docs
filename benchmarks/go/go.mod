@@ -1,5 +1,5 @@
 module bench
 
-go 1.26.4
+go 1.27.1
 
-require github.com/go-ruby-did-you-mean/did-you-mean v0.0.0-20260916092307-ddd074d76c3c
+require github.com/go-ruby-did-you-mean/did-you-mean v0.0.0-20261010104611-cf32ac484a6f
