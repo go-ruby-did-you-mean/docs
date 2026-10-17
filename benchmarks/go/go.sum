@@ -4,3 +4,5 @@ github.com/go-ruby-did-you-mean/did-you-mean v0.0.0-20260717063932-c1bcb7f2c2eb 
 github.com/go-ruby-did-you-mean/did-you-mean v0.0.0-20260717063932-c1bcb7f2c2eb/go.mod h1:8I30lj4s9N0MCztmdJdCyMRCfK5xBBQiWHUwgnK3pIY=
 github.com/go-ruby-did-you-mean/did-you-mean v0.0.0-20260916092307-ddd074d76c3c h1:NSRJ7aPt1+FcTQFToesKCl/rzyL3QdynhvzKaHvGwZQ=
 github.com/go-ruby-did-you-mean/did-you-mean v0.0.0-20260916092307-ddd074d76c3c/go.mod h1:8I30lj4s9N0MCztmdJdCyMRCfK5xBBQiWHUwgnK3pIY=
+github.com/go-ruby-did-you-mean/did-you-mean v0.0.0-20261010104611-cf32ac484a6f h1:RsSXefxG1horP5QzcpmVqn9Lmnq4xusXEcKmPsGxyCI=
+github.com/go-ruby-did-you-mean/did-you-mean v0.0.0-20261010104611-cf32ac484a6f/go.mod h1:wpf2Prq+DRWEr1WDtkFBFfgKpfrLC7nBzUEW7Q2GMFg=
